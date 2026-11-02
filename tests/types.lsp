@@ -176,3 +176,33 @@
   (addendum-compound-simple-misses
    (lambda (x ty) (funcall (compile nil `(lambda (y) (typep y ',ty))) x)))
   nil)
+
+;;; ------------------------------------------------------------------
+;;; The standard array classes and the types of the same names hold the
+;;; same arrays, of every rank, adjustability and displacement.
+;;;
+;;; Spec: 4.3.8 Integrating Types and Classes -- "Every class that has a
+;;;   proper name has a corresponding type with the same name." ...
+;;;   "Thus the expression (typep object class) evaluates to true if the
+;;;   class of object is class itself or a subclass of class."
+;;;   https://metaspec.dev/chap-4.html#sec_4_3_8
+;;; ANSI-TEST checks TYPEP against classes for a few objects of each
+;;; class; arrays of rank zero, of rank three, and displaced arrays are
+;;; not among them for the array classes.
+
+(deftest addendum.typep.array-classes-agree-with-types
+  (let ((bad '()))
+    (dolist (et '(t bit character base-char (unsigned-byte 8) (unsigned-byte 16)
+                  (unsigned-byte 32) (signed-byte 8) fixnum single-float double-float)
+                (nreverse bad))
+      (dolist (dims '(() (3) (2 2) (2 2 2)))
+        (dolist (a (list (make-array dims :element-type et)
+                         (make-array dims :element-type et :adjustable t)
+                         (make-array dims :element-type et
+                                          :displaced-to (make-array (reduce #'* dims)
+                                                                    :element-type et))))
+          (dolist (c '(array simple-array vector simple-vector string simple-string
+                       base-string simple-base-string bit-vector simple-bit-vector))
+            (unless (eq (not (typep a c)) (not (typep a (find-class c))))
+              (push (list et dims (adjustable-array-p a) c) bad)))))))
+  nil)

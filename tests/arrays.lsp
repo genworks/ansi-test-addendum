@@ -66,3 +66,133 @@
               (unless (eql (apply #'aref a subscripts) value)
                 (push (list et dims options (apply #'aref a subscripts)) bad))))))))
   nil)
+
+;;; ------------------------------------------------------------------
+;;; A stored element reads back, or the store is refused.
+;;;
+;;; Spec: Glossary, array element type -- "(of an array) 1. a type
+;;;   associated with the array, and of which all elements of the array
+;;;   are constrained to be members."
+;;;   https://metaspec.dev/chap-26.html#gl_array_element_type
+;;; and AREF: SETF of AREF replaces an element with the new value.
+;;;   https://metaspec.dev/f_aref.html
+;;; An implementation may refuse an object outside the element type, but
+;;; not keep another value in its place: 256 stored in an
+;;; (UNSIGNED-BYTE 8) array and read back as 0.  ANSI-TEST stores values
+;;; of the element type, and tries out-of-range ones in few shapes.
+
+(defun addendum-store-shapes (et)
+  "Arrays of element type ET: simple, adjustable, fill-pointered and
+displaced vectors, and a simple and an adjustable 2x2 array."
+  (list (make-array 3 :element-type et)
+        (make-array 3 :element-type et :adjustable t)
+        (make-array 3 :element-type et :fill-pointer 1)
+        (make-array 2 :element-type et :displaced-to (make-array 3 :element-type et))
+        (make-array '(2 2) :element-type et)
+        (make-array '(2 2) :element-type et :adjustable t)))
+
+(deftest addendum.aref.store-reads-back-or-is-refused
+  (let ((bad '()))
+    (dolist (entry '((bit 2 -1) ((unsigned-byte 8) 256 -1) ((unsigned-byte 16) 65536 -1)
+                     ((unsigned-byte 32) 4294967296 -1) (character 65))
+                   (nreverse bad))
+      (destructuring-bind (et &rest values) entry
+        (dolist (a (addendum-store-shapes et))
+          (dolist (v values)
+            (let* ((subs (make-list (array-rank a) :initial-element 0))
+                   (r (handler-case (progn (setf (apply #'aref a subs) v)
+                                           (apply #'aref a subs))
+                        (error () :refused))))
+              (unless (or (eq r :refused) (eql r v))
+                (push (list et (array-dimensions a) (adjustable-array-p a) v r) bad))))))))
+  nil)
+
+;;; ------------------------------------------------------------------
+;;; SUBSEQ, COPY-SEQ and REVERSE keep the element type, whatever the
+;;; vector's shape.
+;;;
+;;; Spec: SUBSEQ -- "If sequence is a vector, the result is a fresh
+;;;   simple array of rank one that has the same actual array element
+;;;   type as sequence."  https://metaspec.dev/f_subseq.html
+;;;   COPY-SEQ in the same words.  https://metaspec.dev/f_copy-seq.html
+;;;   REVERSE -- "For reverse, if sequence is a vector, the result is a
+;;;   fresh simple array of rank one that has the same actual array
+;;;   element type as sequence."  https://metaspec.dev/f_reverse.html
+;;; ANSI-TEST checks the result's element type mostly from simple
+;;; vectors; here from adjustable, fill-pointered and displaced ones.
+
+(defparameter *addendum-element-type-samples*
+  '((bit 1) ((unsigned-byte 8) 200) ((unsigned-byte 16) 60000)
+    ((unsigned-byte 32) 4000000000) ((signed-byte 8) -100) (character #\a) (t x)))
+
+(deftest addendum.subseq.element-type-of-every-shape
+  (let ((bad '()))
+    (dolist (entry *addendum-element-type-samples* (nreverse bad))
+      (destructuring-bind (et x) entry
+        (let ((want (upgraded-array-element-type et)))
+          (dolist (v (list (make-array 4 :element-type et :initial-element x :adjustable t)
+                           (make-array 4 :element-type et :initial-element x :fill-pointer 4)
+                           (make-array 4 :element-type et
+                                         :displaced-to (make-array 5 :element-type et
+                                                                     :initial-element x)
+                                         :displaced-index-offset 1)))
+            (dolist (op (list (cons 'subseq (lambda (s) (subseq s 1 3)))
+                              (cons 'copy-seq #'copy-seq)
+                              (cons 'reverse #'reverse)))
+              (let ((r (funcall (cdr op) v)))
+                (unless (and (typep r '(simple-array * (*)))
+                             (addendum-type-equal (array-element-type r) want)
+                             (every (lambda (e) (eql e x)) r))
+                  (push (list et (car op) (adjustable-array-p v)
+                              (array-has-fill-pointer-p v) (array-element-type r))
+                        bad)))))))))
+  nil)
+
+;;; ------------------------------------------------------------------
+;;; ADJUST-ARRAY keeps the element type.
+;;;
+;;; Spec: ADJUST-ARRAY -- "Element-type specifies the type of the
+;;;   elements of the resulting array."  https://metaspec.dev/f_adjust-array.html
+;;; and 15.1.2.1, quoted above: the upgraded element type is independent
+;;;   of adjustability and displacement.
+;;; Adjusted with no :ELEMENT-TYPE, with the array's own, and to a
+;;; displaced array; growing with an :INITIAL-ELEMENT, since reading an
+;;; uninitialized element is undefined.  ANSI-TEST adjusts arrays of few
+;;; specialized element types.  Each case runs isolated (ADDENDUM-ISOLATED):
+;;; on one implementation growing a simple vector threw a Java exception
+;;; that ended the thread.
+
+(deftest addendum.adjust-array.keeps-element-type
+  (let ((bad '()))
+    (dolist (entry *addendum-element-type-samples* (nreverse bad))
+      (destructuring-bind (et x) entry
+        (let ((want (upgraded-array-element-type et)))
+          (flet ((check (label thunk)
+                   (let ((r (addendum-isolated
+                             (lambda ()
+                               (handler-case (funcall thunk)
+                                 (error (e) (list :error (type-of e))))))))
+                     (unless (and (arrayp r)
+                                  (addendum-type-equal (array-element-type r) want)
+                                  (eql (row-major-aref r 0) x))
+                       (push (list et label (if (arrayp r) (array-element-type r) r)) bad)))))
+            (check :simple-longer
+                   (lambda () (adjust-array (make-array 2 :element-type et :initial-element x)
+                                            4 :initial-element x)))
+            (check :adjustable-longer
+                   (lambda () (adjust-array (make-array 2 :element-type et :initial-element x
+                                                         :adjustable t)
+                                            4 :initial-element x)))
+            (check :own-element-type
+                   (lambda () (adjust-array (make-array 2 :element-type et :initial-element x
+                                                         :adjustable t)
+                                            4 :element-type et :initial-element x)))
+            (check :to-displaced
+                   (lambda () (adjust-array (make-array 2 :element-type et :initial-element x)
+                                            3 :displaced-to (make-array 3 :element-type et
+                                                                          :initial-element x))))
+            (check :two-dimensional-longer
+                   (lambda () (adjust-array (make-array '(2 2) :element-type et
+                                                              :initial-element x :adjustable t)
+                                            '(3 3) :initial-element x))))))))
+  nil)

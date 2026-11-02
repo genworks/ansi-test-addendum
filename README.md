@@ -55,14 +55,14 @@ By hand, from an ANSI-TEST checkout:
 
 ## Results, 2026-11-02
 
-32 tests; the same results evaluated and compiled except where noted.
+37 tests; the same results evaluated and compiled except where noted.
 
 | implementation | failures |
 |---|---|
 | SBCL 2.6.10 | 0 |
 | CCL 1.14 | 3 |
-| ABCL 1.9.3-clnet.4 | 4 |
-| ABCL master (2026-11-01) | 18 (17 compiled) |
+| ABCL 1.9.3-clnet.5 | 3 |
+| ABCL master (2026-11-01) | 23 (22 compiled) |
 
 CCL's three are its own bugs:
 
@@ -74,24 +74,33 @@ CCL's three are its own bugs:
 - `ADDENDUM.TYPE-OF.SUBTYPEP-CLASS-OF`: `(subtypep (type-of 0) (class-of 0))`
   returns one value, `T`, where SUBTYPEP returns two.
 
-ABCL 1.9.3-clnet.4's four:
+ABCL 1.9.3-clnet.5's three:
 
-- `ADDENDUM.ARRAY-ELEMENT-TYPE.UPGRADED-FOR-EVERY-SHAPE`: an adjustable,
-  fill-pointered or displaced `(unsigned-byte 16)` vector reports element
-  type `T`.
 - `ADDENDUM.DEFPACKAGE.REPEATED-NICKNAMES`: only the last `:NICKNAMES`
   clause is kept.
 - `ADDENDUM.PRINT-READABLY.PATHNAMES`: a pathname with only a type prints
   as `#P".txt"`, and one named `"a.b"` as `#P"a.b"`; both read back with
   different name and type.
-- `ADDENDUM.SUBTYPEP.SOUND`: `(subtypep 'simple-array (find-class 'simple-array))`
-  is surely true, but a rank-zero simple array is not of the class.
+- `ADDENDUM.PRINT-READABLY.PATHNAMES-MORE`: a pathname whose directory is
+  `(:relative :back)` prints as `#P"/z"`, which reads back absolute.
+
+1.9.3-clnet.4 also failed `ADDENDUM.ARRAY-ELEMENT-TYPE.UPGRADED-FOR-EVERY-SHAPE`
+(an adjustable, fill-pointered or displaced `(unsigned-byte 16)` vector
+reported element type `T`) and `ADDENDUM.SUBTYPEP.SOUND` (a rank-zero
+simple array was not of the class `SIMPLE-ARRAY`).  The tests added
+2026-11-02 found more in ABCL master, all passing on clnet.5: arrays of
+`(unsigned-byte 8)` and 16 that keep 256 or 65536 as another number,
+`SUBSEQ`, `REVERSE` and `ADJUST-ARRAY` results of element type `T`, and
+an `ADJUST-ARRAY` that ends the thread with a Java exception.
 
 ## Layout
 
 - `load.lsp` loads the tests after ANSI-TEST's `gclload1.lsp`.
 - `tests/` the suite, one file per area of the standard; `tests/aux.lsp`
-  holds the shared helpers (the fixed-seed generator, the float edges).
+  holds the shared helpers (the fixed-seed generator, the float edges,
+  and `ADDENDUM-ISOLATED`, which on ABCL runs a case in a thread of its
+  own so that a Java exception escaping a primitive ends that thread,
+  not the run).
 - `contested/` tests of a reading the reference implementations decline.
 - `run.sh` the container runner.
 

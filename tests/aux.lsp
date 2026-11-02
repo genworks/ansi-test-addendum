@@ -34,3 +34,15 @@ positive float, for K of every bit length the format's fraction holds."
 (defun addendum-type-equal (a b)
   "True when SUBTYPEP is sure that A and B are the same type."
   (and (subtypep a b) (subtypep b a)))
+
+(defun addendum-isolated (thunk)
+  "FUNCALL THUNK.  On ABCL, in a thread of its own: a Java exception that
+escapes a primitive there is no Lisp condition, and it ends the thread
+it is thrown in, which would end the run; a dead thread reads as
+:CRASHED."
+  #-abcl (funcall thunk)
+  #+abcl (let* ((result :crashed)
+                (thread (threads:make-thread
+                         (lambda () (setf result (funcall thunk))))))
+           (threads:thread-join thread)
+           result))

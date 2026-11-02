@@ -135,3 +135,29 @@
                                  (addendum-pathname-components p)))))
           collect (list (addendum-pathname-components p) text))
   nil)
+
+;;; More pathnames printed readably: dots inside names and types, wild
+;;; components, :UP and :BACK.  ANSI-TEST's readability test
+;;; (PRINT.PATHNAME.1) prints the pathnames of its *UNIVERSE*, sixteen of
+;;; them, none with a dot inside a name or type and none with :UP or
+;;; :BACK in the directory.
+
+(deftest addendum.print-readably.pathnames-more
+  (loop for args in '((:name ".emacs" :type "el") (:name "a.b" :type "c")
+                      (:name "a" :type "b.c") (:name :wild :type "lisp")
+                      (:name "a" :type :wild)
+                      (:directory (:relative :up) :name "z")
+                      (:directory (:relative :back) :name "z")
+                      (:directory (:absolute :wild-inferiors) :name "z")
+                      (:directory (:absolute "a.b") :name "c")
+                      (:name "a*b") (:name "a\\b") (:name "a\"b"))
+        for p = (apply #'make-pathname args)
+        for text = (handler-case (let ((*print-readably* t)) (prin1-to-string p))
+                     (print-not-readable () nil))
+        unless (or (null text)
+                   (let ((back (read-from-string text)))
+                     (and (pathnamep back)
+                          (equal (addendum-pathname-components back)
+                                 (addendum-pathname-components p)))))
+          collect (list args text))
+  nil)
