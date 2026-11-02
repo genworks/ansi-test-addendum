@@ -6,6 +6,10 @@ test and still get the standard wrong.  They are written for ANSI-TEST's own
 harness (RT, the `CL-TEST` package) and run beside it, but they are a
 separate suite, not proposed for inclusion in ANSI-TEST.
 
+Written by [Genworks International](https://genworks.com).  MIT licensed,
+like ANSI-TEST itself: copy the tests, adapt them, ship them with an
+implementation or a distribution; keep the copyright notice.
+
 ## What goes in
 
 A test belongs here when ANSI-TEST checks a fixed example and the bug
@@ -90,3 +94,7 @@ ABCL 1.9.3-clnet.4's four:
   holds the shared helpers (the fixed-seed generator, the float edges).
 - `contested/` tests of a reading the reference implementations decline.
 - `run.sh` the container runner.
+
+## License
+
+MIT; see `LICENSE`.  Copyright (c) 2026 Genworks International.
