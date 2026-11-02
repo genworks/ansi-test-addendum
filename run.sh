@@ -2,12 +2,12 @@
 # run.sh IMPL [LOG] -- run the addendum on one implementation, in a
 # container, against a scratch copy of an ANSI-TEST checkout.
 #   IMPL: sbcl | ccl | abcl:/path/to/abcl.jar
-#   ANSI_TEST: the ansi-test checkout (default ../../../github/ansi-test
+#   ANSI_TEST: the ansi-test checkout (default ../../github/ansi-test
 #              from this directory); COMPILE=1 compiles each test first.
 # Prints ANSI-TEST's summary line and the names of the failing tests.
 set -e
 HERE=$(cd "$(dirname "$0")" && pwd)
-ANSI_TEST=${ANSI_TEST:-$HERE/../../../github/ansi-test}
+ANSI_TEST=${ANSI_TEST:-$HERE/../../github/ansi-test}
 LOG=${2:-$(mktemp)}
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT

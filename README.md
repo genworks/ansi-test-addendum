@@ -37,7 +37,7 @@ only on request.
 
 `run.sh` runs the implementation in a container (`clfoundation/sbcl`,
 `clfoundation/ccl`, or a JDK image for ABCL) against a scratch copy of an
-ANSI-TEST checkout (`ANSI_TEST`, default `../../../github/ansi-test` from
+ANSI-TEST checkout (`ANSI_TEST`, default `../../github/ansi-test` from
 this directory).  `COMPILE=1` compiles each test before running it;
 `CONTESTED=1` adds the tests under `contested/`.
 
