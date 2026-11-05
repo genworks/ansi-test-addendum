@@ -28,8 +28,9 @@ and a line on why ANSI-TEST does not already catch it.
 A test counts only once SBCL and CCL have been run on it: a failure there
 is either shown to be that implementation's own bug or the test is
 dropped or moved to `contested/`.  `contested/` holds readings of the
-standard that both reference implementations decline; those tests load
-only on request.
+standard that the reference implementations do not share, or that the
+standard's own latitude leaves arguable; those tests load only on
+request.
 
 ## Running
 
@@ -53,16 +54,25 @@ By hand, from an ANSI-TEST checkout:
 (rt:do-tests)
 ```
 
-## Results, 2026-11-02
+## Results
 
-37 tests; the same results evaluated and compiled except where noted.
+42 tests since 2026-11-05, 37 before; the same results evaluated and
+compiled except where noted.
 
-| implementation | failures |
-|---|---|
-| SBCL 2.6.10 | 0 |
-| CCL 1.14 | 3 |
-| ABCL 1.9.3-clnet.5 | 3 |
-| ABCL master (2026-11-01) | 23 (22 compiled) |
+| implementation | date | tests | failures |
+|---|---|---|---|
+| SBCL 2.6.10 | 2026-11-05 | 42 | 0 |
+| CCL 1.14 | 2026-11-05 | 42 | 3 |
+| ABCL 1.9.3, stock, evaluated only | 2026-11-05 | 42 | 24 |
+| ABCL 1.9.3-clnet.5 | 2026-11-02 | 37 | 3 |
+| ABCL master (2026-11-01) | 2026-11-02 | 37 | 23 (22 compiled) |
+
+The five tests added 2026-11-05, on the values of backquote templates,
+are the portable part of fare-quasiquote's test suite, by its author's
+suggestion.  Stock ABCL fails one of them, `ADDENDUM.BACKQUOTE.VECTORS`:
+`` `#.#(1 2 3) `` signals an error, as it does on CMUCL.  The sixth,
+under `contested/`, is `ADDENDUM.BACKQUOTE.SPLICE-SEVERAL-FORMS`: SBCL
+passes it and CCL fails it, and its comment says why that is arguable.
 
 CCL's three are its own bugs:
 
