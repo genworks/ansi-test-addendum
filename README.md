@@ -61,8 +61,9 @@ compiled except where noted.
 
 | implementation | date | tests | failures |
 |---|---|---|---|
-| SBCL 2.6.10 | 2026-11-05 | 42 | 0 |
-| CCL 1.14 | 2026-11-05 | 42 | 3 |
+| SBCL 2.6.10 | 2026-11-09 | 42 | 0 |
+| CCL 1.14 | 2026-11-09 | 42 | 3 |
+| miricl 6af4d0eb, precompiled image, Node 26 | 2026-11-09 | 42 | 0 |
 | ABCL 1.9.3, stock, evaluated only | 2026-11-05 | 42 | 24 |
 | ABCL 1.9.3-clnet.5 | 2026-11-02 | 37 | 3 |
 | ABCL master (2026-11-01) | 2026-11-02 | 37 | 23 (22 compiled) |
@@ -73,6 +74,15 @@ suggestion.  Stock ABCL fails one of them, `ADDENDUM.BACKQUOTE.VECTORS`:
 `` `#.#(1 2 3) `` signals an error, as it does on CMUCL.  The sixth,
 under `contested/`, is `ADDENDUM.BACKQUOTE.SPLICE-SEVERAL-FORMS`: SBCL
 passes it and CCL fails it, and its comment says why that is arguable.
+
+miricl (Common Lisp on WebAssembly, run under Node) found a fault in the
+addendum itself on 2026-11-09.  Three tests called `FIND-CLASS` on
+`SIMPLE-ARRAY`, `SIMPLE-VECTOR`, `SIMPLE-STRING`, `SIMPLE-BIT-VECTOR`,
+`BASE-STRING` and `SIMPLE-BASE-STRING`, which Figure 4-8 does not make
+classes, and miricl, having no classes of those names, signaled an
+error.  They now check those names only where the implementation has
+such a class.  With that, miricl passes all 42, evaluated and compiled,
+and the three under `contested/` as well.
 
 CCL's three are its own bugs:
 

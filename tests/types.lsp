@@ -95,9 +95,12 @@
          '(simple-array (unsigned-byte 8) (*)) '(string 3) '(simple-string 3)
          '(bit-vector 3) '(simple-bit-vector 3) '(array (integer 0 1) (*))
          '(integer 0 10) '(satisfies consp)
-         (mapcar #'find-class '(cons list t symbol null sequence addendum-class
-                                vector array string bit-vector simple-vector
-                                simple-string simple-bit-vector simple-array))))
+         ;; The SIMPLE- array types need not be classes (4.3.7, Figure 4-8);
+         ;; they join the battery where the implementation makes them so.
+         (remove nil (mapcar (lambda (name) (find-class name nil))
+                             '(cons list t symbol null sequence addendum-class
+                               vector array string bit-vector simple-vector
+                               simple-string simple-bit-vector simple-array)))))
 
 (deftest addendum.subtypep.sound
   (let ((types (addendum-subtypep-types)) (objects (addendum-objects)) (bad '()))
@@ -186,6 +189,10 @@
 ;;;   "Thus the expression (typep object class) evaluates to true if the
 ;;;   class of object is class itself or a subclass of class."
 ;;;   https://metaspec.dev/chap-4.html#sec_4_3_8
+;;; Of these names Figure 4-8 (4.3.7) makes only ARRAY, VECTOR, STRING
+;;; and BIT-VECTOR classes; the SIMPLE- and BASE- ones are checked where
+;;; the implementation has a class of that name.
+;;;   https://metaspec.dev/chap-4.html#sec_4_3_7
 ;;; ANSI-TEST checks TYPEP against classes for a few objects of each
 ;;; class; arrays of rank zero, of rank three, and displaced arrays are
 ;;; not among them for the array classes.
@@ -203,6 +210,7 @@
                                                                     :element-type et))))
           (dolist (c '(array simple-array vector simple-vector string simple-string
                        base-string simple-base-string bit-vector simple-bit-vector))
-            (unless (eq (not (typep a c)) (not (typep a (find-class c))))
-              (push (list et dims (adjustable-array-p a) c) bad)))))))
+            (let ((class (find-class c nil)))
+              (when (and class (not (eq (not (typep a c)) (not (typep a class)))))
+                (push (list et dims (adjustable-array-p a) c) bad))))))))
   nil)
