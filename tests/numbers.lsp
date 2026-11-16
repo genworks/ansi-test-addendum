@@ -5,22 +5,28 @@
 (in-package :cl-test)
 
 ;;; ------------------------------------------------------------------
-;;; EXPT of a rational base and a float power.
+;;; EXPT of the rational base 1 and a float power is a float.
 ;;;
-;;; Spec: 12.1.4.1 Rule of Float and Rational Contagion -- "when one
-;;;   argument is a rational and the other is a float, the rational is
-;;;   first converted to a float of the same format."
+;;; Spec: 12.1.4.1 Rule of Float and Rational Contagion -- "When
+;;;   rationals and floats are combined by a numerical function, the
+;;;   rational is first converted to a float of the same format."
 ;;;   https://metaspec.dev/chap-12.html#sec_12_1_4_1
-;;; and EXPT: "If b=0 and the real part of x is strictly positive, then
-;;;   b^x=0."  https://metaspec.dev/f_exp.html
-;;; ANSI-TEST compares such results with =, so returning the rational
-;;; 1 or 0 for a float power passes there; the result must be a float.
+;;;   (The metaspec's text puts a draft paragraph saying the same in
+;;;   other words before this sentence; the sentence is in both it and
+;;;   the CLHS.)
+;;; and EXPT -- "If base is a rational and power is an integer, the
+;;;   calculation is exact and the result will be of type rational;
+;;;   otherwise a floating-point approximation might result."
+;;;   https://metaspec.dev/f_exp.html
+;;; The float type follows from contagion.  ANSI-TEST's EXPT.29 checks
+;;; a base of 0 with a float power, EQL to the float 0 (the base-0 cases
+;;; that were here repeated it); a base of 1 with a nonzero float power
+;;; is not among its cases (EXPT.18 raises integers to a float 0), so
+;;; returning the integer 1 passes there.
 
 (deftest addendum.expt.float-power-contagion
   (loop for (base power want) in '((1 2.0 1.0) (1 2.0d0 1.0d0) (1 0.5 1.0)
-                                   (1 -3.0d0 1.0d0)
-                                   (0 2.0 0.0) (0 2.0d0 0.0d0) (0 0.5 0.0)
-                                   (0 1.0d0 0.0d0))
+                                   (1 -3.0d0 1.0d0) (1 1.0 1.0))
         for got = (funcall 'expt base power)
         unless (eql got want) collect (list base power got))
   nil)

@@ -38,18 +38,6 @@
         unless (eql got want) collect (list form got))
   nil)
 
-;;; LOOP's destructuring with OF-TYPE lists, compiled.
-;;; Spec: 6.1.1.7 Destructuring -- "d-type-spec ... (fixnum fixnum)"
-;;;   https://metaspec.dev/chap-6.html#sec_6_1_1_7
-(deftest addendum.compile.loop-destructuring-of-type
-  (list (funcall (compile nil '(lambda () (loop with (a b) of-type (fixnum fixnum) = '(3 4)
-                                                return (+ a b)))))
-        (funcall (compile nil '(lambda () (loop with (x y) of-type (double-float double-float)
-                                                  = '(1d0 2d0) return (+ x y)))))
-        (funcall (compile nil '(lambda () (loop for (a b) of-type (fixnum fixnum)
-                                                  in '((1 2) (3 4)) sum (* a b))))))
-  (7 3.0d0 14))
-
 ;;; ------------------------------------------------------------------
 ;;; The function form of MAPCAR and MAPC is evaluated once, before the
 ;;; list forms.

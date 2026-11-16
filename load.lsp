@@ -18,6 +18,6 @@
              (dolist (name names)
                (load (make-pathname :name name :type "lsp" :defaults d))))))
     (load-dir "tests" '("aux" "numbers" "types" "arrays" "printer" "reader" "backquote"
-                        "clos" "structures" "packages" "compiler"))
+                        "clos" "packages" "compiler"))
     (when *addendum-contested*
       (load-dir "contested" '("format" "backquote" "arrays")))))

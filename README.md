@@ -94,10 +94,10 @@ CCL's three are its own bugs:
 - `ADDENDUM.TYPE-OF.SUBTYPEP-CLASS-OF`: `(subtypep (type-of 0) (class-of 0))`
   returns one value, `T`, where SUBTYPEP returns two.
 
-ABCL 1.9.3-clnet.5's three:
+ABCL 1.9.3-clnet.5's two (a third, on repeated `:NICKNAMES` clauses,
+was ANSI-TEST's own DEFPACKAGE.2B over again and is gone since
+2026-11-16):
 
-- `ADDENDUM.DEFPACKAGE.REPEATED-NICKNAMES`: only the last `:NICKNAMES`
-  clause is kept.
 - `ADDENDUM.PRINT-READABLY.PATHNAMES`: a pathname with only a type prints
   as `#P".txt"`, and one named `"a.b"` as `#P"a.b"`; both read back with
   different name and type.
