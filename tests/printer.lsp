@@ -119,22 +119,53 @@
   (list (pathname-host p) (pathname-device p) (pathname-directory p)
         (pathname-name p) (pathname-type p)))
 
+;;; Each pathname is made inside a handler: 19.2.2.1.1 leaves it
+;;; implementation-defined whether a separator character may appear
+;;; inside a component, and 19.2.2.5 gives implementation-dependent
+;;; limits on the component strings and the directory list, so an
+;;; implementation may refuse to make one of these, and that case is
+;;; skipped.  https://metaspec.dev/chap-19.html#sec_19_2_2_5
+;;; A PRINT-NOT-READABLE on printing skips the case too, since that is
+;;; the conforming way to decline.  So that neither way can pass the
+;;; test with nothing exercised, each test also returns whether at
+;;; least one of its cases printed and was read back.
+(defun addendum-pathname-readback (args)
+  "Make the pathname ARGS describe, print it readably and read it back:
+:SKIPPED when the implementation refuses to make it or signals
+PRINT-NOT-READABLE, :OK when the components read back, else a list
+describing the failure."
+  (let ((p (handler-case (apply #'make-pathname args)
+             (error () nil))))
+    (if (null p)
+        :skipped
+        (let ((text (handler-case (let ((*print-readably* t)) (prin1-to-string p))
+                      (print-not-readable () nil))))
+          (cond ((null text) :skipped)
+                ((let ((back (handler-case (read-from-string text)
+                               (error (e) (list :read-error (type-of e))))))
+                   (and (pathnamep back)
+                        (equal (addendum-pathname-components back)
+                               (addendum-pathname-components p))))
+                 :ok)
+                (t (list args text)))))))
+
+(defun addendum-pathname-readback-failures (cases)
+  "The failures among CASES, each a MAKE-PATHNAME argument list, and
+whether any case was exercised."
+  (let ((bad '()) (exercised nil))
+    (dolist (args cases (list (nreverse bad) exercised))
+      (let ((r (addendum-pathname-readback args)))
+        (case r
+          (:skipped)
+          (:ok (setf exercised t))
+          (t (setf exercised t) (push r bad)))))))
+
 (deftest addendum.print-readably.pathnames
-  (loop for p in (list (make-pathname :type "txt")
-                       (make-pathname :name "a.b")
-                       (make-pathname :name ".emacs")
-                       (make-pathname :name "a" :type "b" :version :newest)
-                       (make-pathname :directory '(:absolute "tmp"))
-                       (make-pathname :directory '(:relative "x" "y") :name "z"))
-        for text = (handler-case (let ((*print-readably* t)) (prin1-to-string p))
-                     (print-not-readable () nil))
-        unless (or (null text)
-                   (let ((back (read-from-string text)))
-                     (and (pathnamep back)
-                          (equal (addendum-pathname-components back)
-                                 (addendum-pathname-components p)))))
-          collect (list (addendum-pathname-components p) text))
-  nil)
+  (addendum-pathname-readback-failures
+   '((:type "txt") (:name "a.b") (:name ".emacs")
+     (:name "a" :type "b" :version :newest)
+     (:directory (:absolute "tmp")) (:directory (:relative "x" "y") :name "z")))
+  (nil t))
 
 ;;; More pathnames printed readably: dots inside names and types, wild
 ;;; components, :UP and :BACK.  ANSI-TEST's readability test
@@ -143,21 +174,13 @@
 ;;; :BACK in the directory.
 
 (deftest addendum.print-readably.pathnames-more
-  (loop for args in '((:name ".emacs" :type "el") (:name "a.b" :type "c")
-                      (:name "a" :type "b.c") (:name :wild :type "lisp")
-                      (:name "a" :type :wild)
-                      (:directory (:relative :up) :name "z")
-                      (:directory (:relative :back) :name "z")
-                      (:directory (:absolute :wild-inferiors) :name "z")
-                      (:directory (:absolute "a.b") :name "c")
-                      (:name "a*b") (:name "a\\b") (:name "a\"b"))
-        for p = (apply #'make-pathname args)
-        for text = (handler-case (let ((*print-readably* t)) (prin1-to-string p))
-                     (print-not-readable () nil))
-        unless (or (null text)
-                   (let ((back (read-from-string text)))
-                     (and (pathnamep back)
-                          (equal (addendum-pathname-components back)
-                                 (addendum-pathname-components p)))))
-          collect (list args text))
-  nil)
+  (addendum-pathname-readback-failures
+   '((:name ".emacs" :type "el") (:name "a.b" :type "c")
+     (:name "a" :type "b.c") (:name :wild :type "lisp")
+     (:name "a" :type :wild)
+     (:directory (:relative :up) :name "z")
+     (:directory (:relative :back) :name "z")
+     (:directory (:absolute :wild-inferiors) :name "z")
+     (:directory (:absolute "a.b") :name "c")
+     (:name "a*b") (:name "a\\b") (:name "a\"b")))
+  (nil t))
