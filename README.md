@@ -61,11 +61,15 @@ By hand, from an ANSI-TEST checkout:
 
 ## Results
 
-42 tests since 2026-11-05, 37 before; the same results evaluated and
-compiled except where noted.
+37 tests since 2026-11-16 (a second read removed four that ANSI-TEST
+already has and moved one to `contested/`), 42 since 2026-11-05, 37
+before; the same results evaluated and compiled except where noted.
 
 | implementation | date | tests | failures |
 |---|---|---|---|
+| SBCL 2.6.10 | 2026-11-16 | 37 | 0 |
+| CCL 1.14 | 2026-11-16 | 37 | 3 |
+| ABCL 1.9.3-clnet.6 | 2026-11-16 | 37 | 1 (`ADDENDUM.BACKQUOTE.VECTORS`) |
 | SBCL 2.6.10 | 2026-11-09 | 42 | 0 |
 | CCL 1.14 | 2026-11-09 | 42 | 3 |
 | miricl 6af4d0eb, precompiled image, Node 26 | 2026-11-09 | 42 | 0 |
@@ -79,6 +83,11 @@ suggestion.  Stock ABCL fails one of them, `ADDENDUM.BACKQUOTE.VECTORS`:
 `` `#.#(1 2 3) `` signals an error, as it does on CMUCL.  The sixth,
 under `contested/`, is `ADDENDUM.BACKQUOTE.SPLICE-SEVERAL-FORMS`: SBCL
 passes it and CCL fails it, and its comment says why that is arguable.
+
+With `CONTESTED=1` (41 tests on 2026-11-16): SBCL fails one, the
+generated `~F` rounding cases; CCL fails all four contested tests, the
+store of 256 into an `(unsigned-byte 8)` vector among them; ABCL
+1.9.3-clnet.6 fails the backquote splice and the generated `~F` cases.
 
 miricl (Common Lisp on WebAssembly, run under Node) found a fault in the
 addendum itself on 2026-11-09.  Three tests called `FIND-CLASS` on
