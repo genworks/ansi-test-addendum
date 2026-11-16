@@ -21,9 +21,14 @@ objects that inhabit each type, `*PRINT-READABLY*` checked by reading
 the output back, generated forms from a fixed-seed generator so every
 implementation sees the same ones.
 
-Each test carries a comment giving the passage of the standard it rests
-on, quoted, with a link to that passage on [metaspec.dev](https://metaspec.dev/),
-and a line on why ANSI-TEST does not already catch it.
+Each test carries a comment giving the passage it rests on, quoted
+from [metaspec.dev](https://metaspec.dev/) with a link to it, and a
+line on why ANSI-TEST does not already catch it.  metaspec.dev renders
+the TeX sources of the draft the ANSI standard was published from
+(X3J13 document 94-101R), so its text is the standard's apart from
+editorial differences; where a quoted passage is not in the Common
+Lisp HyperSpec, or the HyperSpec numbers the section differently, the
+test's comment says so.
 
 A test counts only once SBCL and CCL have been run on it: a failure there
 is either shown to be that implementation's own bug or the test is

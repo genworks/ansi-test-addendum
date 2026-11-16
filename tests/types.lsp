@@ -69,8 +69,8 @@
 ;;; Spec: SUBTYPEP -- "If type-1 is a recognizable subtype of type-2,
 ;;;   the first value is true", and a true second value says the first
 ;;;   is certain.  https://metaspec.dev/f_subtypep.html
-;;; and 4.2.3 Type Specifiers: a type is a set of objects.
-;;;   https://metaspec.dev/chap-4.html#sec_4_2_3
+;;; and 4.1 Introduction -- a type "is a (possibly infinite) set of
+;;;   objects".  https://metaspec.dev/chap-4.html#sec_4_1
 ;;; ANSI-TEST checks SUBTYPEP against tables of expected answers, so a
 ;;; wrong answer for a pair it does not list goes unnoticed; here every
 ;;; pair of a battery is checked against the objects that inhabit it.
@@ -95,7 +95,7 @@
          '(simple-array (unsigned-byte 8) (*)) '(string 3) '(simple-string 3)
          '(bit-vector 3) '(simple-bit-vector 3) '(array (integer 0 1) (*))
          '(integer 0 10) '(satisfies consp)
-         ;; The SIMPLE- array types need not be classes (4.3.7, Figure 4-8);
+         ;; The SIMPLE- array types need not be classes (4.3.8, Figure 4-8);
          ;; they join the battery where the implementation makes them so.
          (remove nil (mapcar (lambda (name) (find-class name nil))
                              '(cons list t symbol null sequence addendum-class
@@ -189,10 +189,11 @@
 ;;;   "Thus the expression (typep object class) evaluates to true if the
 ;;;   class of object is class itself or a subclass of class."
 ;;;   https://metaspec.dev/chap-4.html#sec_4_3_8
-;;; Of these names Figure 4-8 (4.3.7) makes only ARRAY, VECTOR, STRING
-;;; and BIT-VECTOR classes; the SIMPLE- and BASE- ones are checked where
-;;; the implementation has a class of that name.
-;;;   https://metaspec.dev/chap-4.html#sec_4_3_7
+;;; Of these names Figure 4-8, in the same section, makes only ARRAY,
+;;; VECTOR, STRING and BIT-VECTOR classes; the SIMPLE- and BASE- ones
+;;; are checked where the implementation has a class of that name.
+;;; (The section is 4.3.8 on metaspec.dev, where 4.3.7 is Redefining
+;;; Classes, and 4.3.7 in the HyperSpec.)
 ;;; ANSI-TEST checks TYPEP against classes for a few objects of each
 ;;; class; arrays of rank zero, of rank three, and displaced arrays are
 ;;; not among them for the array classes.

@@ -184,9 +184,15 @@
 ;;;   float) integer)), where b is the radix of the floating-point
 ;;;   representation.  float is not necessarily between 1/b and 1."
 ;;;   https://metaspec.dev/f_decode-float.html
+;;; and its Notes, which identify (scale-float signif expon) with
+;;;   (abs f) for the results of (decode-float f): for the largest
+;;;   floats expon is past the exponent range, so the identity holds
+;;;   only of the exact product, not of (expt (float b float) integer)
+;;;   computed as a float.
 ;;; Each product here is a representable float.  Computing b^integer
 ;;; as a float first overflows or underflows before the multiply when
-;;; integer is near the format's range.
+;;; integer is near the format's range; the test takes the formula as
+;;; the mathematical value, as the Notes do.
 
 (deftest addendum.scale-float.range-edges
   (if (addendum-ieee-denormals-p)
