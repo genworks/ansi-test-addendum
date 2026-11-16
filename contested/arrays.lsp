@@ -17,12 +17,14 @@
 ;;; of a non-member.  The reading here is that an implementation may
 ;;; refuse such a store but not keep another value in its place: 256
 ;;; stored in an (UNSIGNED-BYTE 8) array and read back as 0.  CCL 1.14
-;;; does not share it: a compiled store into an array whose type is
-;;; declared keeps 256 as 0 at its default policy, while the full call
-;;; (SETF (APPLY #'AREF ...)) is refused.  SBCL 2.6.10 refuses both.
-;;; So the test is contested, and it stores through every path: a full
-;;; call, a compiled function with the array's type declared, and for a
-;;; simple vector one with its exact simple type declared.
+;;; does not share it: at its default policy, a compiled store of the
+;;; constant 256 into a vector whose simple type is declared reads back
+;;; 0 (and -1 reads back 255), while a store of a value it cannot see
+;;; at compile time is refused.  SBCL 2.6.10 refuses every way.  So the
+;;; test is contested, and it stores the constant through every path: a
+;;; full call, a compiled function with the array's type declared, for
+;;; a simple vector one with its exact simple type declared, and a
+;;; compiled form that makes the vector itself.
 
 (defun addendum-store-shapes (et)
   "Arrays of element type ET: simple, adjustable, fill-pointered and
@@ -34,21 +36,28 @@ displaced vectors, and a simple and an adjustable 2x2 array."
         (make-array '(2 2) :element-type et)
         (make-array '(2 2) :element-type et :adjustable t)))
 
-(defun addendum-store-paths (et)
+(defun addendum-store-paths (et v)
   "Ways to store V into the first element of an array A of element type
-ET and read it back, each a (LABEL . FUNCTION) with FUNCTION taking A
-and V; the :SIMPLE path applies only to a simple vector."
-  (list (cons :call (lambda (a v)
+ET and read it back, each a (LABEL . FUNCTION) with FUNCTION taking A.
+The :SIMPLE and :LITERAL paths apply only to a simple vector, and the
+:LITERAL one makes a simple vector of its own in the compiled form and
+stores V as a constant."
+  (list (cons :call (lambda (a)
                       (setf (row-major-aref a 0) v)
                       (row-major-aref a 0)))
-        (cons :declared (compile nil `(lambda (a v)
+        (cons :declared (compile nil `(lambda (a)
                                         (declare (type (array ,et) a))
-                                        (setf (row-major-aref a 0) v)
+                                        (setf (row-major-aref a 0) ,v)
                                         (row-major-aref a 0))))
-        (cons :simple (compile nil `(lambda (a v)
+        (cons :simple (compile nil `(lambda (a)
                                       (declare (type (simple-array ,et (*)) a))
-                                      (setf (aref a 0) v)
-                                      (aref a 0))))))
+                                      (setf (aref a 0) ,v)
+                                      (aref a 0))))
+        (cons :literal (compile nil `(lambda (a)
+                                       (declare (ignore a))
+                                       (let ((b (make-array 3 :element-type ',et)))
+                                         (setf (aref b 0) ,v)
+                                         (aref b 0)))))))
 
 (deftest addendum.aref.store-reads-back-or-is-refused
   (let ((bad '()))
@@ -56,13 +65,13 @@ and V; the :SIMPLE path applies only to a simple vector."
                      ((unsigned-byte 32) 4294967296 -1) (character 65))
                    (nreverse bad))
       (destructuring-bind (et &rest values) entry
-        (let ((paths (addendum-store-paths et)))
-          (dolist (a (addendum-store-shapes et))
-            (dolist (path paths)
-              (unless (and (eq (car path) :simple)
-                           (not (typep a `(simple-array ,et (*)))))
-                (dolist (v values)
-                  (let ((r (handler-case (funcall (cdr path) a v)
+        (dolist (v values)
+          (let ((paths (addendum-store-paths et v)))
+            (dolist (a (addendum-store-shapes et))
+              (dolist (path paths)
+                (unless (and (member (car path) '(:simple :literal))
+                             (not (typep a `(simple-array ,et (*)))))
+                  (let ((r (handler-case (funcall (cdr path) a)
                              (error () :refused))))
                     (unless (or (eq r :refused) (eql r v))
                       (push (list et (array-dimensions a) (adjustable-array-p a)
