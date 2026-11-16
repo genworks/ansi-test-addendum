@@ -108,10 +108,13 @@ ABCL 1.9.3-clnet.5's three:
 (an adjustable, fill-pointered or displaced `(unsigned-byte 16)` vector
 reported element type `T`) and `ADDENDUM.SUBTYPEP.SOUND` (a rank-zero
 simple array was not of the class `SIMPLE-ARRAY`).  The tests added
-2026-11-02 found more in ABCL master, all passing on clnet.5: arrays of
-`(unsigned-byte 8)` and 16 that keep 256 or 65536 as another number,
-`SUBSEQ`, `REVERSE` and `ADJUST-ARRAY` results of element type `T`, and
-an `ADJUST-ARRAY` that ends the thread with a Java exception.
+2026-11-02 found more in ABCL master, all passing on clnet.5: `SUBSEQ`,
+`REVERSE` and `ADJUST-ARRAY` results of element type `T`, and an
+`ADJUST-ARRAY` that ends the thread with a Java exception.  The test
+that stores 256 into an `(unsigned-byte 8)` array and expects it back
+or an error (ABCL master kept another number) is under `contested/`
+since 2026-11-16: the standard says nothing about such a store, and CCL
+keeps 256 as 0 in compiled code at its default policy.
 
 ## Layout
 

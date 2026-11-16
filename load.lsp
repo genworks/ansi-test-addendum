@@ -20,4 +20,4 @@
     (load-dir "tests" '("aux" "numbers" "types" "arrays" "printer" "reader" "backquote"
                         "clos" "structures" "packages" "compiler"))
     (when *addendum-contested*
-      (load-dir "contested" '("format" "backquote")))))
+      (load-dir "contested" '("format" "backquote" "arrays")))))

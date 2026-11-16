@@ -68,46 +68,6 @@
   nil)
 
 ;;; ------------------------------------------------------------------
-;;; A stored element reads back, or the store is refused.
-;;;
-;;; Spec: Glossary, array element type -- "(of an array) 1. a type
-;;;   associated with the array, and of which all elements of the array
-;;;   are constrained to be members."
-;;;   https://metaspec.dev/chap-26.html#gl_array_element_type
-;;; and AREF: SETF of AREF replaces an element with the new value.
-;;;   https://metaspec.dev/f_aref.html
-;;; An implementation may refuse an object outside the element type, but
-;;; not keep another value in its place: 256 stored in an
-;;; (UNSIGNED-BYTE 8) array and read back as 0.  ANSI-TEST stores values
-;;; of the element type, and tries out-of-range ones in few shapes.
-
-(defun addendum-store-shapes (et)
-  "Arrays of element type ET: simple, adjustable, fill-pointered and
-displaced vectors, and a simple and an adjustable 2x2 array."
-  (list (make-array 3 :element-type et)
-        (make-array 3 :element-type et :adjustable t)
-        (make-array 3 :element-type et :fill-pointer 1)
-        (make-array 2 :element-type et :displaced-to (make-array 3 :element-type et))
-        (make-array '(2 2) :element-type et)
-        (make-array '(2 2) :element-type et :adjustable t)))
-
-(deftest addendum.aref.store-reads-back-or-is-refused
-  (let ((bad '()))
-    (dolist (entry '((bit 2 -1) ((unsigned-byte 8) 256 -1) ((unsigned-byte 16) 65536 -1)
-                     ((unsigned-byte 32) 4294967296 -1) (character 65))
-                   (nreverse bad))
-      (destructuring-bind (et &rest values) entry
-        (dolist (a (addendum-store-shapes et))
-          (dolist (v values)
-            (let* ((subs (make-list (array-rank a) :initial-element 0))
-                   (r (handler-case (progn (setf (apply #'aref a subs) v)
-                                           (apply #'aref a subs))
-                        (error () :refused))))
-              (unless (or (eq r :refused) (eql r v))
-                (push (list et (array-dimensions a) (adjustable-array-p a) v r) bad))))))))
-  nil)
-
-;;; ------------------------------------------------------------------
 ;;; SUBSEQ, COPY-SEQ and REVERSE keep the element type, whatever the
 ;;; vector's shape.
 ;;;
